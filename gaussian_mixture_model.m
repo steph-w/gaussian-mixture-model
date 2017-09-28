@@ -1,46 +1,44 @@
-function [mu_est, sigma_est, p_est, counter, difference] = gaussian_mixture_model(values, k, epsilon, iterations)
+function [numComponents, BestModel] = ...
+    gaussian_mixture_model(X, C, maxIterations, setAIC)
 
-% Estimate the parameters of a 1D gaussian mixture model using EM
-% Inputs:
-% values - row vector training set or observed values
-% k - number of classes (mixtures)
-% epsilon - precision for convergence
-% iterations - max iterations to run
+% gaussian_mixture_model.m
 %
-% Outputs:
-% mu_est - vector output of mean estimates for each class
-% sigma_est - vector output of standard deviations for each class
-% p_est - class membership probability estimates
-% counter - number of iterations needed for convergence
-% difference - total absolute difference in parameters at each iteration to
-% get an idea of the convergence rate
+% inputs:
+% X - values 
+% C - number of classes/ components
+% maxIterations - max number of iterations to run EM
+% setAIC - boolean specifies whether or not to use AIC scoring to return
+% the best fit model and the number of components in the model
+%
+% outputs:
+% numComponents - number of components in the model
+% BestModel - if setAIC is 'true', then BestModel is the best scoring model
+% with the lowest AIC score. Else if setAIC is 'false' then simply returns
+% the model found.
+%
 
-% initialize
-counter = 0;
-mu_est = ones([k, 1]) * mean(values);
-sigma_est = ones([k, 1]) * std(values);
-p_est = ones(C, 1) / C;
-difference = epsilon;
+if setAIC == false
+    try
+        GMM = fitgmdist(X, C);
+        numComponents = C
+        BestModel = GMM
+    catch exception
+        disp('There was an error fitting the Gaussian mixture model')
+        error = exception.message
+    end
+else
+    AIC = zeros(1, C);
+    GMModels = cell(1, C);
+    options = statset('MaxIter', maxIterations);
+    for k = 1:C
+        GMModels{k} = fitgmdist(X, k, 'Options', options, 'CovarianceType', 'diagonal')
+        AIC(k) = GMModels{k}.AIC;
+    end
 
-while (difference >= epsilon && counter < iterations)
-    % E step soft classify values into one of the classes: 
-    for j=1:k
-        class(j, :) = norm_density(values, sigma_est(j), mu_est(j)) * p_est(j);
-    end
-    % normalize
-    class = class ./ repmat(sum(class), C, 1);
+    [minAIC, numComponents] = min(AIC);
+
+    numComponents
+
+    BestModel = GMModels{numComponents}
     
-    % M step estimate the parameters ( p, u, sigma )
-    mu_est_old = mu_est;
-    sigma_est_old = sigma_est;
-    p_est_old = p_est;
-    for j=1:k
-        mu_est(j) = sum( class(j,:).*values ) / sum(class(j,:));
-        sigma_est(j) = sqrt( sum(class(j,:).*(values - mu_est(j)).^2) / sum(class(j,:)) );
-        p_est(j) = mean(class(j,:));
-    end
-    
-    difference(counter+1) = sum(abs(mu_est_old - mu_est)) + sum(abs(sigma_est_old - sigma_est)) + sum(abs(p_est_old - p_est));
-        
-    counter = counter + 1;
 end
