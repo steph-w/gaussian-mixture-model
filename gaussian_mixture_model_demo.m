@@ -26,7 +26,11 @@ x_pdf = linspace(xmin, xmax, 1000);
 y_pdf = pdf(pd, x_pdf');
 
 figure;
-hold on;
-bar(bins, est_pdf);
+hold all;
+bar(bins, est_pdf, 'FaceColor', 'b');
 plot(x_pdf, y_pdf, '-r', 'Linewidth', 2);
+% plot the individual components
+for j=1:numComponents
+    plot(x_pdf, BestModel.PComponents(j) * normpdf(x_pdf, BestModel.mu(j), sqrt(BestModel.Sigma(j))), 'Linewidth', 2)
+end
 hold off;
