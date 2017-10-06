@@ -31,7 +31,7 @@ else
     GMModels = cell(1, C);
     options = statset('MaxIter', maxIterations);
     for k = 1:C
-        GMModels{k} = fitgmdist(X, k, 'Options', options, 'CovarianceType', 'diagonal')
+        GMModels{k} = fitgmdist(X, k, 'Options', options, 'CovarianceType', 'diagonal');
         AIC(k) = GMModels{k}.AIC;
     end
 
